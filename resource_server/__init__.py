@@ -1,0 +1,1 @@
+"""UMA Protected Resource Server"""
