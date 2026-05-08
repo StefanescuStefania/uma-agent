@@ -1,0 +1,100 @@
+{
+  "claim_format_urn": "urn:uma-agent:delegation-chain:1.0",
+  "transport_header": "X-Uma-Delegation-Chain",
+  "encoding": "base64url(JSON), padding stripped",
+  "chains": {
+    "depth_1_compliance_manager": {
+      "chain_id": "4489027d-1225-4bf9-8749-8465782e3568",
+      "root_agent": "compliance-manager",
+      "members": [
+        "compliance-manager"
+      ],
+      "granted_scopes": [
+        "documents:read",
+        "documents:write",
+        "calendar:read",
+        "database:read",
+        "database:write",
+        "database:audit"
+      ],
+      "max_depth": 4,
+      "issued_at": 1777878495,
+      "chain_hash": "41d732a941c87282150d15276dc87fe0517445365787fcf57d465c25c7bd0018"
+    },
+    "depth_2_risk_analyst": {
+      "chain_id": "aad4c345-f341-4eaa-9fdd-2c90756dcb3d",
+      "root_agent": "compliance-manager",
+      "members": [
+        "compliance-manager",
+        "risk-analyst"
+      ],
+      "granted_scopes": [
+        "documents:read",
+        "calendar:read",
+        "database:read"
+      ],
+      "max_depth": 4,
+      "issued_at": 1777878495,
+      "chain_hash": "091114db311268c21f17849fd0c8a54494d2b29a8ddf39b86fc35640318f09e0"
+    },
+    "depth_3_data_extractor": {
+      "chain_id": "5635cf6b-e6f3-4198-a812-28dd1811e6e0",
+      "root_agent": "compliance-manager",
+      "members": [
+        "compliance-manager",
+        "risk-analyst",
+        "data-extractor"
+      ],
+      "granted_scopes": [
+        "documents:read",
+        "database:read"
+      ],
+      "max_depth": 4,
+      "issued_at": 1777878495,
+      "chain_hash": "330014320e5f0ce8eaa74e44a494dfe351a5a3101907487b5d8f6941ddd751d4"
+    }
+  },
+  "hmac_verification": {
+    "depth_1_valid": true,
+    "depth_2_valid": true,
+    "depth_3_valid": true
+  },
+  "attack_validations": {
+    "T1_scope_escalation": {
+      "description": "data-extractor (scopes: documents:read, database:read) attempts database:audit",
+      "blocked": [
+        false,
+        "T1/T4: scope 'database:audit' is not in the chain's granted set ['documents:read', 'database:read'] \u2014 possible scope escalation or prompt injection"
+      ],
+      "allowed": [
+        true,
+        "chain claim valid"
+      ]
+    },
+    "T2_depth_exceeded": {
+      "description": "5-member chain exceeds max_depth=4",
+      "blocked": [
+        false,
+        "T2: chain depth 5 exceeds configured maximum 4; delegation rejected"
+      ]
+    },
+    "T3_token_replay": {
+      "description": "compliance-manager presents data-extractor delegation chain",
+      "blocked": [
+        false,
+        "T3: requesting agent 'compliance-manager' is not the chain terminus (expected 'data-extractor') \u2014 possible token replay"
+      ],
+      "allowed": [
+        true,
+        "chain claim valid"
+      ]
+    },
+    "T2_T3_hash_tamper": {
+      "description": "chain_hash replaced with zeros",
+      "blocked": [
+        false,
+        "T2/T3: chain_hash mismatch \u2014 claim was tampered with or replayed from a different session"
+      ]
+    }
+  }
+}

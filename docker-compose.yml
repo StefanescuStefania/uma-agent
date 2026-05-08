@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:
-  # PostgreSQL database for Keycloak
   postgres:
     image: postgres:16-alpine
     container_name: uma-postgres
@@ -21,57 +20,77 @@ services:
     networks:
       - uma-network
 
-  # Keycloak - UMA authorization server
   keycloak:
     image: keycloak/keycloak:24.0.0
     container_name: uma-keycloak
     environment:
-      # Database configuration
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
       KC_DB_USERNAME: keycloak
       KC_DB_PASSWORD: keycloak_password
-
-      # Admin credentials
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
-
-      # Hostname
       KC_HOSTNAME: localhost
       KC_HOSTNAME_PORT: 8080
       KC_HOSTNAME_ADMIN: localhost
       KC_HOSTNAME_ADMIN_PORT: 8080
-
-      # HTTP configuration
-      KC_HTTP_ENABLED: true
+      KC_HTTP_ENABLED: "true"
       KC_HTTP_PORT: 8080
       KC_PROXY: edge
-
-      # Logging
       KC_LOG_LEVEL: INFO
-
-      # JVM settings for better performance on development machine
       JAVA_OPTS: "-Xms512m -Xmx1024m"
-
     ports:
       - "8080:8080"
-
     command:
       - "start-dev"
       - "--import-realm"
-
     depends_on:
       postgres:
         condition: service_healthy
-
     volumes:
       - ./keycloak:/opt/keycloak/data/import:ro
-
     networks:
       - uma-network
-
-    # Keep container running even if healthcheck fails
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/realms/master > /dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  resource-server:
+    build: .
+    container_name: uma-resource-server
+    environment:
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: test-realm
+      CLIENT_ID: resource-server
+      CLIENT_SECRET: uma-resource-server-secret
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak_password
+      CHAIN_HMAC_SECRET: "uma-agent-chain-hmac-secret-2024"
+      MAX_DELEGATION_DEPTH: "6"
+      LOG_LEVEL: INFO
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    networks:
+      - uma-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:5000/ > /dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
 
 networks:
   uma-network:
