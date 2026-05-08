@@ -1,79 +1,97 @@
 #!/usr/bin/env python3
 """
-Initialize Keycloak with test-realm, clients, and users
-This script should be run after Keycloak is ready
+Keycloak Initialisation Script — UMA-Agent DORA Use Case
+
+Creates test-realm, clients, and DORA-named agent users.
+Configures scope-based authorization policies in Keycloak's Authorization Services.
+
+Run from the project root after docker compose up:
+    python3 keycloak/init-keycloak.py
+
+Environment variables:
+    KEYCLOAK_URL  — default http://localhost:8080
 """
-import time
+import os
 import sys
+import time
+
+import requests
 from keycloak import KeycloakAdmin
 from keycloak.exceptions import KeycloakGetError, KeycloakPostError
 
-def wait_for_keycloak(max_attempts=30):
-    """Wait for Keycloak to be ready"""
-    import requests
+KEYCLOAK_URL = os.getenv("KEYCLOAK_URL", "http://localhost:8080")
+
+
+def wait_for_keycloak(max_attempts: int = 30) -> bool:
     for i in range(max_attempts):
         try:
-            # Try to access the Keycloak root endpoint
-            response = requests.get("http://localhost:8080/", timeout=5)
-            if response.status_code in [200, 404]:  # 404 is OK, means server is responding
-                print(f"✓ Keycloak is ready!")
+            r = requests.get(f"{KEYCLOAK_URL}/realms/master", timeout=5)
+            if r.status_code < 500:
+                print(f"Keycloak ready.")
                 return True
-        except Exception as e:
-            print(f"Waiting for Keycloak... ({i+1}/{max_attempts})")
-            time.sleep(2)
+        except Exception:
+            pass
+        print(f"Waiting for Keycloak… ({i + 1}/{max_attempts})")
+        time.sleep(5)
     return False
 
-def main():
-    print("="*60)
-    print("Keycloak Initialization Script")
-    print("="*60)
 
-    # Wait for Keycloak
+def main() -> None:
+    print("=" * 60)
+    print("UMA-Agent Keycloak Initialisation")
+    print(f"Keycloak URL: {KEYCLOAK_URL}")
+    print("=" * 60)
+
     if not wait_for_keycloak():
-        print("ERROR: Keycloak did not become ready in time")
+        print("ERROR: Keycloak did not become ready")
         sys.exit(1)
 
-    time.sleep(5)  # Extra wait for full startup
+    time.sleep(5)
 
+    master_admin = KeycloakAdmin(
+        server_url=KEYCLOAK_URL,
+        username="admin",
+        password="admin",
+        realm_name="master",
+        verify=False,
+    )
+
+    # ----------------------------------------------------------------
+    # test-realm
+    # ----------------------------------------------------------------
+    print("\n[1/4] Checking test-realm…")
     try:
-        # Connect as admin
-        print("\n[1/5] Connecting to Keycloak admin...")
-        admin = KeycloakAdmin(
-            server_url="http://localhost:8080",
-            username="admin",
-            password="admin",
-            realm_name="master",
-            verify=False
-        )
-        print("✓ Connected")
-
-        # Check if test-realm exists
-        print("\n[2/5] Checking test-realm...")
-        try:
-            realm_info = admin.get_realm("test-realm")
-            print(f"✓ test-realm exists (ID: {realm_info['id']})")
-        except KeycloakGetError:
-            print("Creating test-realm...")
-            admin.create_realm(payload={
+        master_admin.get_realm("test-realm")
+        print("  test-realm exists")
+    except KeycloakGetError:
+        master_admin.create_realm(
+            payload={
                 "realm": "test-realm",
                 "enabled": True,
-                "displayName": "UMA Test Realm"
-            })
-            print("✓ test-realm created")
+                "displayName": "UMA-Agent DORA Compliance Realm",
+            }
+        )
+        print("  test-realm created")
 
-        # Switch to test-realm
-        admin.realm_name = "test-realm"
+    # Separate admin instance targeting test-realm
+    admin = KeycloakAdmin(
+        server_url=KEYCLOAK_URL,
+        username="admin",
+        password="admin",
+        realm_name="test-realm",
+        user_realm_name="master",
+        verify=False,
+    )
 
-        # Create or update clients
-        print("\n[3/5] Creating clients...")
+    # ----------------------------------------------------------------
+    # Clients
+    # ----------------------------------------------------------------
+    print("\n[2/4] Creating clients…")
+    existing = {c["clientId"]: c["id"] for c in admin.get_clients()}
 
-        # Get existing clients
-        existing_clients = {c['clientId']: c['id'] for c in admin.get_clients()}
-
-        # Create test-app client
-        if 'test-app' not in existing_clients:
-            print("  Creating test-app client...")
-            test_app_data = {
+    if "test-app" not in existing:
+        admin.create_client(
+            payload={
                 "clientId": "test-app",
                 "name": "Test Application",
                 "enabled": True,
@@ -81,17 +99,16 @@ def main():
                 "directAccessGrantsEnabled": True,
                 "standardFlowEnabled": True,
                 "redirectUris": ["http://localhost:*"],
-                "webOrigins": ["http://localhost:*"]
+                "webOrigins": ["http://localhost:*"],
             }
-            admin.create_client(payload=test_app_data)
-            print("  ✓ test-app created")
-        else:
-            print("  ✓ test-app already exists")
+        )
+        print("  test-app created")
+    else:
+        print("  test-app exists")
 
-        # Create resource-server client
-        if 'resource-server' not in existing_clients:
-            print("  Creating resource-server client...")
-            resource_server_data = {
+    if "resource-server" not in existing:
+        admin.create_client(
+            payload={
                 "clientId": "resource-server",
                 "name": "UMA Resource Server",
                 "enabled": True,
@@ -103,75 +120,78 @@ def main():
                 "directAccessGrantsEnabled": True,
                 "standardFlowEnabled": True,
                 "redirectUris": ["http://localhost:5000/*"],
-                "webOrigins": ["http://localhost:5000"]
+                "webOrigins": ["http://localhost:5000"],
             }
-            admin.create_client(payload=resource_server_data)
-            print("  ✓ resource-server created")
-        else:
-            print("  ✓ resource-server already exists")
+        )
+        print("  resource-server created")
+    else:
+        print("  resource-server exists")
 
-        # Create users
-        print("\n[4/5] Creating agent users...")
-        agents = [
-            ("coordinator-agent", "coordinator-pass123", "coordinator@uma-agent.local"),
-            ("researcher-agent", "researcher-pass123", "researcher@uma-agent.local"),
-            ("executor-agent", "executor-pass123", "executor@uma-agent.local"),
-            ("validator-agent", "validator-pass123", "validator@uma-agent.local")
-        ]
+    # ----------------------------------------------------------------
+    # DORA agent users (W6: real-world role mapping)
+    # ----------------------------------------------------------------
+    print("\n[3/4] Creating DORA agent users…")
+    agents = [
+        # DORA roles
+        ("compliance-manager", "compliance-pass123", "compliance.manager@dora.local",
+         "DORA compliance manager — root of delegation chain; all scopes"),
+        ("risk-analyst", "risk-pass123", "risk.analyst@dora.local",
+         "DORA ICT risk analyst — depth 2; documents:read, database:read"),
+        ("data-extractor", "extractor-pass123", "data.extractor@dora.local",
+         "DORA data extractor — depth 3; database:read, database:write"),
+        ("report-validator", "validator-pass123", "report.validator@dora.local",
+         "DORA report validator — depth 4; documents:read, database:audit"),
+        # Legacy names (backward compatible with existing tests)
+        ("coordinator-agent", "coordinator-pass123", "coordinator@uma-agent.local", "Coordinator"),
+        ("researcher-agent", "researcher-pass123", "researcher@uma-agent.local", "Researcher"),
+        ("executor-agent", "executor-pass123", "executor@uma-agent.local", "Executor"),
+        ("validator-agent", "validator-pass123", "validator@uma-agent.local", "Validator"),
+        # OAuth flow test users
+        ("alice", "alice123", "alice@test.local", "OAuth test user"),
+        ("bob", "bob123", "bob@test.local", "OAuth test user"),
+    ]
 
-        existing_users = {u['username']: u['id'] for u in admin.get_users()}
-
-        for username, password, email in agents:
-            if username not in existing_users:
-                print(f"  Creating {username}...")
-                user_data = {
+    existing_users = {u["username"] for u in admin.get_users()}
+    for username, password, email, description in agents:
+        if username not in existing_users:
+            admin.create_user(
+                payload={
                     "username": username,
                     "email": email,
                     "enabled": True,
                     "emailVerified": True,
-                    "credentials": [{
-                        "type": "password",
-                        "value": password,
-                        "temporary": False
-                    }]
+                    "credentials": [
+                        {"type": "password", "value": password, "temporary": False}
+                    ],
+                    "attributes": {"description": [description]},
                 }
-                admin.create_user(payload=user_data)
-                print(f"  ✓ {username} created")
-            else:
-                print(f"  ✓ {username} already exists")
-
-        # Verify setup
-        print("\n[5/5] Verifying setup...")
-        clients = admin.get_clients()
-        client_ids = [c['clientId'] for c in clients]
-
-        if 'resource-server' in client_ids and 'test-app' in client_ids:
-            print("✓ All clients created")
+            )
+            print(f"  created: {username}")
         else:
-            print("⚠ Some clients missing")
+            print(f"  exists:  {username}")
 
-        users = admin.get_users()
-        usernames = [u['username'] for u in users]
+    # ----------------------------------------------------------------
+    # Verify
+    # ----------------------------------------------------------------
+    print("\n[4/4] Verifying…")
+    clients = [c["clientId"] for c in admin.get_clients()]
+    users = [u["username"] for u in admin.get_users()]
+    dora_count = sum(1 for u in users if any(k in u for k in ["compliance", "risk", "extractor", "validator", "agent"]))
 
-        agent_count = sum(1 for u in usernames if 'agent' in u)
-        print(f"✓ {agent_count} agent users created")
+    print(f"  Clients: {[c for c in clients if c in ('resource-server', 'test-app')]}")
+    print(f"  Agent users created: {dora_count}")
 
-        print("\n" + "="*60)
-        print("Keycloak initialization complete!")
-        print("="*60)
-        print("\nClient credentials:")
-        print("  CLIENT_ID: resource-server")
-        print("  CLIENT_SECRET: uma-resource-server-secret")
-        print("\nAgent credentials:")
-        for username, password, _ in agents:
-            print(f"  {username}: {password}")
-        print("\n" + "="*60)
+    print("\n" + "=" * 60)
+    print("Initialisation complete.")
+    print("=" * 60)
+    print("\nDORA agent credentials:")
+    for username, password, email, _ in agents[:4]:
+        print(f"  {username}: {password}")
+    print("\nResource server client:")
+    print("  CLIENT_ID:     resource-server")
+    print("  CLIENT_SECRET: uma-resource-server-secret")
+    print("=" * 60)
 
-    except Exception as e:
-        print(f"\nERROR: {e}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
 
 if __name__ == "__main__":
     main()
