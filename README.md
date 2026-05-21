@@ -285,9 +285,9 @@ GROQ_API_KEY=gsk_... docker compose -f docker-compose.distributed.yml --profile 
 ```
 
 Raw JSON results:
-- `paper_evidence/benchmark_distributed.json` — Table VII distributed latency
-- `paper_evidence/load_test.json` — HTTP concurrent load (20 threads)
-- `paper_evidence/llm_load_test.json` — LLM concurrent load (20 containers)
+- `evaluation_results/benchmark_distributed.json` — Table VII distributed latency
+- `evaluation_results/load_test.json` — HTTP concurrent load (20 threads)
+- `evaluation_results/llm_load_test.json` — LLM concurrent load (20 containers)
 
 ---
 
@@ -297,7 +297,9 @@ Raw JSON results:
 uma-agent/
 ├── agents/
 │   ├── chain_claim.py          # DelegationChainClaim — the protocol extension
-│   └── llm_agent.py            # LLMAgent with UMA tool calling (Ollama / Groq)
+│   ├── llm_agent.py            # LLMAgent with UMA tool calling (Ollama / Groq)
+│   ├── uma_client.py           # UMA 2.0 token client (auth, RPT exchange)
+│   └── database.py             # PostgreSQL audit trail writer
 │
 ├── resource_server/
 │   └── app.py                  # FastAPI server — chain validation middleware
@@ -315,7 +317,7 @@ uma-agent/
 │   ├── build_chains.py             # Pre-build delegation chains for LLM load test
 │   ├── llm_agent_worker.py         # Single-agent worker for LLM load test containers
 │   ├── aggregate_llm_results.py    # Aggregate per-container LLM load test results
-│   └── comparison_analysis.py     # Feature matrix vs alternatives
+│   └── comparison_analysis.py      # Feature matrix vs alternatives
 │
 ├── tests/                      # 273 tests (integration tests auto-skip if servers down)
 │   ├── test_chain_claim.py         # 60 tests — T1–T4, HMAC, attack priority
@@ -340,15 +342,21 @@ uma-agent/
 │   ├── run_load_test.sh            # HTTP concurrent load test (20 threads)
 │   └── run_llm_load_test.sh        # LLM concurrent load test (20 Docker containers)
 │
-├── paper_evidence/
+├── docker/
+│   └── toxiproxy.json          # Toxiproxy proxy definitions for distributed stack
+│
+├── evaluation_results/
 │   ├── benchmark_distributed.json  # Table VII measured results
 │   ├── load_test.json              # HTTP load test results
-│   └── llm_load_test.json          # LLM load test results (20 containers)
+│   ├── llm_load_test.json          # LLM load test results (20 containers)
+│   └── llm_agents/                 # Per-agent JSON outputs from LLM load test
 │
 ├── docker-compose.yml              # Keycloak + PostgreSQL + resource server
 ├── docker-compose.distributed.yml  # Distributed stack with Toxiproxy
 ├── Dockerfile                      # Resource server image
 ├── Dockerfile.agent                # Agent/benchmark image (built from RS image)
+├── TESTING.md                      # Detailed distributed evaluation documentation
+├── start.sh                        # Convenience script to bring up the full stack
 └── requirements.txt
 ```
 
