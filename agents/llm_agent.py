@@ -35,15 +35,17 @@ from agents.chain_claim import DelegationChainClaim
 
 logger = logging.getLogger(__name__)
 
-_KEYCLOAK_URL = "http://localhost:8080"
-_REALM = "test-realm"
-_RESOURCE_SERVER_URL = "http://localhost:5000"
-_CLIENT_ID = "test-app"
+_KEYCLOAK_URL        = os.environ.get("KEYCLOAK_URL",       "http://localhost:8080")
+_REALM               = os.environ.get("KEYCLOAK_REALM",     "test-realm")
+_RESOURCE_SERVER_URL = os.environ.get("RESOURCE_SERVER_URL","http://localhost:5000")
+_CLIENT_ID           = os.environ.get("CLIENT_ID",          "test-app")
 
 # OpenAI-compatible base URLs
+# OLLAMA_BASE_URL lets the container agent reach a host-side Ollama instance
+# (e.g. http://host.docker.internal:11434/v1 set in docker-compose.distributed.yml).
 _BACKEND_URLS: Dict[str, str] = {
-    "ollama": "http://localhost:11434/v1",
-    "groq": "https://api.groq.com/openai/v1",
+    "ollama": os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434/v1"),
+    "groq":   "https://api.groq.com/openai/v1",
 }
 
 # Sensible default models per backend
@@ -166,6 +168,7 @@ class LLMAgent:
         api_key: Optional[str] = None,
         base_url: Optional[str] = None,
         pre_signed_chain_claim: Optional[DelegationChainClaim] = None,
+        ollama_timeout: Optional[int] = None,
     ) -> None:
         """
         Parameters
@@ -219,7 +222,15 @@ class LLMAgent:
         )
         resolved_url = base_url or _BACKEND_URLS.get(backend, _BACKEND_URLS["ollama"])
 
-        self._client = OpenAI(api_key=resolved_key, base_url=resolved_url)
+        # For Ollama under concurrent load, requests queue behind one another
+        # and may take many minutes; allow caller to set a generous timeout.
+        import httpx
+        client_kwargs: Dict[str, Any] = {"api_key": resolved_key, "base_url": resolved_url}
+        if ollama_timeout is not None and backend == "ollama":
+            client_kwargs["timeout"] = httpx.Timeout(
+                connect=10.0, read=float(ollama_timeout), write=60.0, pool=60.0
+            )
+        self._client = OpenAI(**client_kwargs)
         self._oai_tools = _openai_tools(self._TOOL_DEFS)
 
     # ------------------------------------------------------------------

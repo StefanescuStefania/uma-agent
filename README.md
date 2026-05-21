@@ -105,6 +105,192 @@ Chain signing adds ~18–20 ms per delegation hop, incurred once at agent startu
 
 ---
 
+## Distributed evaluation — separate containers with network latency
+
+The `docker-compose.distributed.yml` stack reproduces Table VII (network latency)
+and the concurrent load test from the paper's evaluation section.
+All services run in **separate containers** on a Docker bridge network;
+[Toxiproxy](https://github.com/Shopify/toxiproxy) injects a configurable
+per-hop delay (default **10 ms ± 2 ms**) between the agent containers and
+the backend services.
+
+### Architecture
+
+```
+Agent container ──→ Toxiproxy :18080 ──→ Keycloak :8080
+                ──→ Toxiproxy :15000 ──→ Resource Server :5000
+Resource Server ──→ Keycloak :8080  (direct, no proxy)
+```
+
+### How the containers are built
+
+**Keycloak** (`keycloak/keycloak:24.0.0`):
+- Realm imported on first start from `keycloak/` (read-only mount)
+- Healthcheck uses `bash -c 'echo > /dev/tcp/localhost/8080'`
+  (the image has no `curl` — a pitfall to be aware of)
+
+**Resource Server** (built from `Dockerfile`):
+- `python:3.12-slim` + FastAPI + uvicorn
+- `CHAIN_HMAC_SECRET` set via env; never exposed to agents
+- Talks directly to Keycloak (no proxy) so its own JWT validation latency
+  is not counted in the agent-side measurements
+
+**Agent / Benchmark container** (built from `Dockerfile.agent`):
+- Builds `FROM uma-agent-resource-server:latest` (reuses cached apt/pip layers — <1 s build)
+- Only re-COPYs `agents/`, `scenarios/`, `demos/` so source changes are instant
+- Connects to Keycloak and Resource Server through Toxiproxy
+- Also used for the optional Ollama / Groq LLM agent demos (Docker Compose profiles)
+
+**Toxiproxy** (`ghcr.io/shopify/toxiproxy:2.9.0`):
+- Proxy definitions loaded from `docker/toxiproxy.json`
+- Latency toxics injected at benchmark startup via REST API (no privileged `tc netem` needed)
+- Inspect live: `curl http://localhost:8474/proxies`
+
+### Network-latency benchmark results (n = 30, +10 ms per hop)
+
+| Operation | Mean (ms) | Std | p95 | Overhead |
+|---|---:|---:|---:|---:|
+| Authentication (Keycloak) | 230.5 | 10.4 | 250.0 | — |
+| RPT exchange | 40.1 | 5.3 | 48.6 | — |
+| Resource read — no chain | 21.3 | 2.5 | 26.0 | baseline |
+| Resource read — depth 1 | 28.0 | 4.0 | 32.6 | +6.7 ms |
+| Resource read — depth 2 | 22.3 | 2.4 | 27.2 | +1.0 ms |
+| Resource read — depth 3 | 22.3 | 3.1 | 28.6 | +0.9 ms |
+| Chain init | 26.9 | 4.3 | 33.0 | one-time/root |
+| Chain sign | 23.0 | 2.9 | 28.7 | one-time/hop |
+
+Chain overhead at depths 2–3 is **≤ 1 ms** even with real network latency —
+HMAC validation remains O(1) under network conditions.
+
+### Concurrent load test — HTTP agents (20 agents, n = 30 req/agent)
+
+**Setup:** 4 server-signed delegation chains (depth 4 and 5), one agent per depth
+level per chain (16 honest agents) + 4 attack agents (T1–T4).
+Each agent authenticates with their **own** Keycloak credentials.
+The chain terminus must match the RPT's `preferred_username` (T3 enforcement).
+All 20 agents start simultaneously behind a `threading.Barrier`.
+
+```
+Wall time:     4.47 s      Throughput: 134.1 req/s
+Honest:   480 / 480 OK    Attacks blocked: 120 / 120  (100 %)
+```
+
+**Honest agent latency under concurrent load:**
+
+| Mean | p50 | p95 | p99 |
+|---:|---:|---:|---:|
+| 146.6 ms | 148.0 ms | 181.2 ms | 195.3 ms |
+
+**Per-depth latency — O(1) under concurrent load:**
+
+| Depth | n | Mean (ms) | p95 | p99 |
+|---:|---:|---:|---:|---:|
+| 1 | 120 | 146.6 | 181.5 | 189.2 |
+| 2 | 120 | 147.1 | 178.4 | 194.6 |
+| 3 | 60 | 146.5 | 176.8 | 197.4 |
+| 4 | 120 | 146.1 | 184.9 | 192.2 |
+| 5 | 60 | 146.8 | 176.2 | 193.9 |
+
+All depths indistinguishable (p99 spread < 9 ms).
+
+**Attack blocking under concurrent load:**
+
+| Class | Blocked | Rate |
+|---|---:|---:|
+| T1 — scope escalation | 30/30 | 100% |
+| T2 — depth exceeded | 30/30 | 100% |
+| T3 — token replay | 30/30 | 100% |
+| T4 — HMAC tamper | 30/30 | 100% |
+
+---
+
+### LLM agent concurrent load test — 20 separate Docker containers
+
+This test runs **real LLM-backed agents** (`LLMAgent` + Ollama/llama3.2) each in
+their own Docker container, sharing only the Keycloak and Resource Server backend.
+
+**Container breakdown:**
+
+| Role | Count | Backend | Requests |
+|---|---:|---|---:|
+| LLM honest agents (chains A + B, depths 1–4) | 8 | Ollama llama3.2 | 1 task/agent |
+| HTTP honest agents (chains C + D, depths 1,2,4,5) | 8 | Direct HTTP | 30 req/agent |
+| Attack agents (T1, T2, T3, T4) | 4 | Direct HTTP | 30 req/agent |
+| **Total** | **20** | | **368 requests** |
+
+**Results (measured on 31 GB / 28-CPU host, Ollama llama3.2):**
+
+```
+Containers:    20 separate Docker containers, simultaneous start
+Honest OK:     248 / 248     Attacks blocked: 120 / 120  (100 %)
+Wall time:     224 s         Throughput:      1.6 req/s
+```
+
+**LLM agent task latency** (includes Keycloak auth + LLM reasoning + UMA ticket + resource read):
+
+| Mean | p50 | p95 | p99 |
+|---:|---:|---:|---:|
+| 167.8 s | 166.6 s | 213.2 s | 217.5 s |
+
+*Note: Ollama serialises LLM requests; 8 concurrent agents queue behind one another.
+The UMA protocol adds ≤ 3 ms overhead — HMAC validation is O(1) regardless of LLM latency.*
+
+**HTTP agent latency under concurrent LLM load** (pure UMA protocol, no LLM):
+
+| Mean | p50 | p95 | p99 |
+|---:|---:|---:|---:|
+| 234.0 ms | 251.2 ms | 263.8 ms | 269.3 ms |
+
+**Per-depth HTTP latency — O(1) confirmed under LLM load:**
+
+| Depth | n | Mean (ms) | p95 | p99 |
+|---:|---:|---:|---:|---:|
+| 1 | 60 | 233.2 | 264.1 | 272.1 |
+| 2 | 60 | 240.0 | 263.5 | 267.2 |
+| 4 | 60 | 233.7 | 263.2 | 270.0 |
+| 5 | 60 | 228.9 | 263.2 | 265.8 |
+
+All depths indistinguishable (p99 spread < 7 ms). Chain validation cost is depth-invariant even when 20 containers run concurrently.
+
+**Attack blocking:**
+
+| Class | Blocked | Rate |
+|---|---:|---:|
+| T1 — scope escalation | 30/30 | 100% |
+| T2 — depth exceeded | 30/30 | 100% |
+| T3 — token replay | 30/30 | 100% |
+| T4 — HMAC tamper | 30/30 | 100% |
+
+### Running the distributed tests
+
+```bash
+# Network-latency benchmark (Table VII)
+./scripts/run_distributed_benchmark.sh
+
+# HTTP concurrent load test (20 threads in one container)
+./scripts/run_load_test.sh
+
+# LLM concurrent load test (20 separate Docker containers, real Ollama inference)
+# Prerequisites: Ollama running with llama3.2 pulled (ollama pull llama3.2)
+./scripts/run_llm_load_test.sh
+
+# Tune parameters
+NETWORK_LATENCY_MS=20 N_HTTP=50 ./scripts/run_distributed_benchmark.sh
+N_REQUESTS=50 NETWORK_LATENCY_MS=15 ./scripts/run_load_test.sh
+N_LLM_REQUESTS=2 N_HTTP_REQUESTS=50 ./scripts/run_llm_load_test.sh
+
+# Optional LLM agent demos
+docker compose -f docker-compose.distributed.yml --profile ollama up --build ollama-agent
+GROQ_API_KEY=gsk_... docker compose -f docker-compose.distributed.yml --profile groq up --build groq-agent
+```
+
+Raw JSON results:
+- `paper_evidence/benchmark_distributed.json` — Table VII distributed latency
+- `paper_evidence/load_test.json` — HTTP concurrent load (20 threads)
+- `paper_evidence/llm_load_test.json` — LLM concurrent load (20 containers)
+
+---
+
 ## Repository structure
 
 ```
@@ -124,6 +310,11 @@ uma-agent/
 │   ├── deep_delegation_demo.py     # 5-agent chain with flux visualization
 │   ├── attack_scenarios.py         # T1–T4 + TAMPER live HTTP demonstrations
 │   ├── benchmark.py                # Statistical latency benchmark
+│   ├── benchmark_distributed.py    # Distributed latency benchmark (Toxiproxy)
+│   ├── load_test.py                # HTTP concurrent load test (20 threads)
+│   ├── build_chains.py             # Pre-build delegation chains for LLM load test
+│   ├── llm_agent_worker.py         # Single-agent worker for LLM load test containers
+│   ├── aggregate_llm_results.py    # Aggregate per-container LLM load test results
 │   └── comparison_analysis.py     # Feature matrix vs alternatives
 │
 ├── tests/                      # 273 tests (integration tests auto-skip if servers down)
@@ -140,16 +331,25 @@ uma-agent/
 │   └── dora_llm_demo.py        # Interactive LLM demo (authorized / delegated / T4)
 │
 ├── scripts/
-│   ├── init_database.py        # Initialize PostgreSQL tables
-│   ├── create_test_users.py    # Create Keycloak DORA users
-│   ├── reset_test_users.py     # Reset users to clean state
-│   ├── fix_test_users.py       # Fix user configuration issues
-│   └── view_audit_trail.py     # Query and display audit events
+│   ├── init_database.py            # Initialize PostgreSQL tables
+│   ├── create_test_users.py        # Create Keycloak DORA users
+│   ├── reset_test_users.py         # Reset users to clean state
+│   ├── fix_test_users.py           # Fix user configuration issues
+│   ├── view_audit_trail.py         # Query and display audit events
+│   ├── run_distributed_benchmark.sh # Table VII: network-latency benchmark
+│   ├── run_load_test.sh            # HTTP concurrent load test (20 threads)
+│   └── run_llm_load_test.sh        # LLM concurrent load test (20 Docker containers)
 │
-├── docker-compose.yml          # Keycloak + PostgreSQL + resource server
-├── Dockerfile                  # Resource server image
-├── requirements.txt
-└── start.sh                    # One-shot startup helper
+├── paper_evidence/
+│   ├── benchmark_distributed.json  # Table VII measured results
+│   ├── load_test.json              # HTTP load test results
+│   └── llm_load_test.json          # LLM load test results (20 containers)
+│
+├── docker-compose.yml              # Keycloak + PostgreSQL + resource server
+├── docker-compose.distributed.yml  # Distributed stack with Toxiproxy
+├── Dockerfile                      # Resource server image
+├── Dockerfile.agent                # Agent/benchmark image (built from RS image)
+└── requirements.txt
 ```
 
 ---

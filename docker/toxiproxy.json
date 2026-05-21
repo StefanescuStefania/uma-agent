@@ -1,0 +1,14 @@
+[
+  {
+    "name": "keycloak",
+    "listen": "0.0.0.0:18080",
+    "upstream": "keycloak:8080",
+    "enabled": true
+  },
+  {
+    "name": "resource-server",
+    "listen": "0.0.0.0:15000",
+    "upstream": "resource-server:5000",
+    "enabled": true
+  }
+]

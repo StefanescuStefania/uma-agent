@@ -1,0 +1,203 @@
+{
+  "wall_time_s": 4.473,
+  "total_requests": 600,
+  "honest_successful": 480,
+  "honest_failed": 0,
+  "attack_total": 120,
+  "attack_blocked": 120,
+  "attack_block_rate": 100.0,
+  "throughput_rps": 134.1,
+  "latency_all_ms": {
+    "n": 480,
+    "mean": 146.59,
+    "std": 20.16,
+    "p50": 148.04,
+    "p95": 181.24,
+    "p99": 195.26,
+    "min": 33.64,
+    "max": 200.13
+  },
+  "latency_by_depth": {
+    "1": {
+      "n": 120,
+      "mean": 146.61,
+      "std": 18.79,
+      "p50": 145.66,
+      "p95": 181.47,
+      "p99": 189.16,
+      "min": 83.25,
+      "max": 191.04
+    },
+    "2": {
+      "n": 120,
+      "mean": 147.08,
+      "std": 19.58,
+      "p50": 147.59,
+      "p95": 178.44,
+      "p99": 194.58,
+      "min": 38.83,
+      "max": 200.13
+    },
+    "3": {
+      "n": 60,
+      "mean": 146.49,
+      "std": 22.51,
+      "p50": 149.77,
+      "p95": 176.81,
+      "p99": 197.41,
+      "min": 33.64,
+      "max": 198.78
+    },
+    "4": {
+      "n": 120,
+      "mean": 146.07,
+      "std": 21.5,
+      "p50": 148.45,
+      "p95": 184.94,
+      "p99": 192.17,
+      "min": 48.09,
+      "max": 197.45
+    },
+    "5": {
+      "n": 60,
+      "mean": 146.75,
+      "std": 19.37,
+      "p50": 148.14,
+      "p95": 176.23,
+      "p99": 193.88,
+      "min": 71.47,
+      "max": 199.16
+    }
+  },
+  "latency_by_chain": {
+    "chain_A": {
+      "n": 120,
+      "mean": 145.93,
+      "std": 21.8,
+      "p50": 147.3,
+      "p95": 178.81,
+      "p99": 192.24,
+      "min": 33.64,
+      "max": 196.46
+    },
+    "chain_B": {
+      "n": 120,
+      "mean": 146.09,
+      "std": 22.05,
+      "p50": 148.6,
+      "p95": 180.57,
+      "p99": 194.48,
+      "min": 38.83,
+      "max": 198.78
+    },
+    "chain_C": {
+      "n": 120,
+      "mean": 147.06,
+      "std": 18.09,
+      "p50": 147.05,
+      "p95": 180.52,
+      "p99": 190.12,
+      "min": 85.38,
+      "max": 199.16
+    },
+    "chain_D": {
+      "n": 120,
+      "mean": 147.3,
+      "std": 18.6,
+      "p50": 148.26,
+      "p95": 181.29,
+      "p99": 196.23,
+      "min": 71.47,
+      "max": 200.13
+    }
+  },
+  "attack_detail": {
+    "T1": {
+      "total": 30,
+      "blocked": 30,
+      "block_rate": 100.0
+    },
+    "T2": {
+      "total": 30,
+      "blocked": 30,
+      "block_rate": 100.0
+    },
+    "T3": {
+      "total": 30,
+      "blocked": 30,
+      "block_rate": 100.0
+    },
+    "T4": {
+      "total": 30,
+      "blocked": 30,
+      "block_rate": 100.0
+    }
+  },
+  "meta": {
+    "n_honest": 16,
+    "n_attacks": 4,
+    "n_total": 20,
+    "chains": {
+      "chain_A": {
+        "depth": 4,
+        "members": [
+          "compliance-manager",
+          "risk-analyst",
+          "data-extractor",
+          "report-validator"
+        ],
+        "scopes": [
+          "documents:read",
+          "calendar:read"
+        ]
+      },
+      "chain_B": {
+        "depth": 4,
+        "members": [
+          "compliance-manager",
+          "risk-analyst",
+          "data-extractor",
+          "report-validator"
+        ],
+        "scopes": [
+          "documents:read",
+          "calendar:read"
+        ]
+      },
+      "chain_C": {
+        "depth": 5,
+        "members": [
+          "compliance-manager",
+          "risk-analyst",
+          "data-extractor",
+          "report-validator",
+          "audit-reader"
+        ],
+        "scopes": [
+          "documents:read"
+        ]
+      },
+      "chain_D": {
+        "depth": 5,
+        "members": [
+          "compliance-manager",
+          "risk-analyst",
+          "data-extractor",
+          "report-validator",
+          "audit-reader"
+        ],
+        "scopes": [
+          "documents:read"
+        ]
+      }
+    }
+  },
+  "run_at": "2026-05-19T12:05:29.170279+00:00",
+  "network": {
+    "keycloak_url": "http://dist-uma-toxiproxy:18080",
+    "resource_server_url": "http://dist-uma-toxiproxy:15000",
+    "toxiproxy_api": "http://dist-uma-toxiproxy:8474",
+    "injected_latency_ms": 10,
+    "injected_jitter_ms": 2
+  }
+}

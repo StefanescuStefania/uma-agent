@@ -1,0 +1,194 @@
+{
+  "agent_id": "ar-d-http",
+  "agent_type": "http",
+  "username": "audit-reader",
+  "chain_name": "chain_D",
+  "chain_depth": 5,
+  "attack_class": "",
+  "n_requests": 30,
+  "requests": [
+    {
+      "latency_ms": 79.99856799870031,
+      "http_status": 200,
+      "blocked": false,
+      "error": ""
+    },
+    {
+      "latency_ms": 95.60239300117246,
+      "http_status": 200,
+      "blocked": false,
+      "error": ""
+    },
+    {
+      "latency_ms": 184.43289000060759,
+      "http_status": 200,
+      "blocked": false,
+      "error": ""
+    },
+    {
+      "latency_ms": 219.1408569997293,
+      "http_status": 200,
+      "blocked": false,
+      "error": ""
+    },
+    {
+      "latency_ms": 228.49419400154147,
+      "http_status": 200,
+      "blocked": false,
+      "error": ""
+    },
+    {
+      "latency_ms": 240.88118000145187,
+      "http_status": 200,
+      "blocked": false,
+      "error": ""
+    },
+    {
+      "latency_ms": 250.59141900055693,
+      "http_status": 200,
+      "blocked": false,
+      "error": ""
+    },
+    {
+      "latency_ms": 256.0151629986649,
+      "http_status": 200,
+      "blocked": false,
+      "error": ""
+    },
+    {
+      "latency_ms": 254.988337001123,
+      "http_status": 200,
+      "blocked": false,
+      "error": ""
+    },
+    {
+      "latency_ms": 250.17002700042212,
+      "http_status": 200,
+      "blocked": false,
+      "error": ""
+    },
+    {
+      "latency_ms": 254.15877199702663,
+      "http_status": 200,
+      "blocked": false,
+      "error": ""
+    },
+    {
+      "latency_ms": 254.0348399998038,
+      "http_status": 200,
+      "blocked": false,
+      "error": ""
+    },
+    {
+      "latency_ms": 230.5121740027971,
+      "http_status": 200,
+      "blocked": false,
+      "error": ""
+    },
+    {
+      "latency_ms": 259.9262039984751,
+      "http_status": 200,
+      "blocked": false,
+      "error": ""
+    },
+    {
+      "latency_ms": 241.0918040004617,
+      "http_status": 200,
+      "blocked": false,
+      "error": ""
+    },
+    {
+      "latency_ms": 250.7792430005793,
+      "http_status": 200,
+      "blocked": false,
+      "error": ""
+    },
+    {
+      "latency_ms": 251.77257699760958,
+      "http_status": 200,
+      "blocked": false,
+      "error": ""
+    },
+    {
+      "latency_ms": 251.19248699775198,
+      "http_status": 200,
+      "blocked": false,
+      "error": ""
+    },
+    {
+      "latency_ms": 263.12488699841197,
+      "http_status": 200,
+      "blocked": false,
+      "error": ""
+    },
+    {
+      "latency_ms": 261.0058999998728,
+      "http_status": 200,
+      "blocked": false,
+      "error": ""
+    },
+    {
+      "latency_ms": 246.79864900099346,
+      "http_status": 200,
+      "blocked": false,
+      "error": ""
+    },
+    {
+      "latency_ms": 259.3881729990244,
+      "http_status": 200,
+      "blocked": false,
+      "error": ""
+    },
+    {
+      "latency_ms": 261.7798440005572,
+      "http_status": 200,
+      "blocked": false,
+      "error": ""
+    },
+    {
+      "latency_ms": 245.99559499984025,
+      "http_status": 200,
+      "blocked": false,
+      "error": ""
+    },
+    {
+      "latency_ms": 252.29842299813754,
+      "http_status": 200,
+      "blocked": false,
+      "error": ""
+    },
+    {
+      "latency_ms": 255.92445799702546,
+      "http_status": 200,
+      "blocked": false,
+      "error": ""
+    },
+    {
+      "latency_ms": 262.8683959992486,
+      "http_status": 200,
+      "blocked": false,
+      "error": ""
+    },
+    {
+      "latency_ms": 264.96713799861027,
+      "http_status": 200,
+      "blocked": false,
+      "error": ""
+    },
+    {
+      "latency_ms": 251.7039919985109,
+      "http_status": 200,
+      "blocked": false,
+      "error": ""
+    },
+    {
+      "latency_ms": 219.16375200089533,
+      "http_status": 200,
+      "blocked": false,
+      "error": ""
+    }
+  ],
+  "wall_time_s": 9.54,
+  "started_at": "2026-05-19T12:56:15.104042+00:00",
+  "completed_at": "2026-05-19T12:56:24.643727+00:00"
+}

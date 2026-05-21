@@ -1,0 +1,20 @@
+{
+  "agent_id": "rv-b-llm",
+  "agent_type": "llm",
+  "username": "report-validator",
+  "chain_name": "chain_B",
+  "chain_depth": 4,
+  "attack_class": "",
+  "n_requests": 1,
+  "requests": [
+    {
+      "latency_ms": 159574.56342500154,
+      "http_status": 200,
+      "blocked": false,
+      "error": ""
+    }
+  ],
+  "wall_time_s": 164.178,
+  "started_at": "2026-05-19T12:56:13.000905+00:00",
+  "completed_at": "2026-05-19T12:58:57.178839+00:00"
+}
