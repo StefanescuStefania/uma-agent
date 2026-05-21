@@ -1,0 +1,310 @@
+{
+  "run_at": "2026-05-19T12:59:56.445238+00:00",
+  "n_containers": 20,
+  "n_llm_agents": 8,
+  "n_http_agents": 8,
+  "n_attack_agents": 4,
+  "total_requests": 368,
+  "honest_successful": 248,
+  "attack_total": 120,
+  "attack_blocked": 120,
+  "attack_block_rate": 100.0,
+  "wall_time_s": 224.205,
+  "throughput_rps": 1.6,
+  "latency_all_honest_ms": {
+    "n": 248,
+    "mean": 5639.25,
+    "std": 30239.69,
+    "p50": 251.3,
+    "p95": 266.73,
+    "p99": 181637.74,
+    "min": 18.22,
+    "max": 218600.91
+  },
+  "latency_llm_task_ms": {
+    "n": 8,
+    "mean": 167797.76,
+    "std": 34827.36,
+    "p50": 166599.07,
+    "p95": 213225.37,
+    "p99": 217525.8,
+    "min": 117636.59,
+    "max": 218600.91
+  },
+  "latency_http_request_ms": {
+    "n": 240,
+    "mean": 233.97,
+    "std": 50.45,
+    "p50": 251.15,
+    "p95": 263.81,
+    "p99": 269.29,
+    "min": 18.22,
+    "max": 280.29
+  },
+  "latency_by_depth": {
+    "1": {
+      "n": 60,
+      "mean": 233.25,
+      "std": 53.04,
+      "p50": 251.03,
+      "p95": 264.12,
+      "p99": 272.1,
+      "min": 33.31,
+      "max": 280.29
+    },
+    "2": {
+      "n": 60,
+      "mean": 240.04,
+      "std": 35.0,
+      "p50": 251.23,
+      "p95": 263.52,
+      "p99": 267.17,
+      "min": 96.06,
+      "max": 268.29
+    },
+    "4": {
+      "n": 60,
+      "mean": 233.67,
+      "std": 51.65,
+      "p50": 250.63,
+      "p95": 263.21,
+      "p99": 269.96,
+      "min": 25.75,
+      "max": 269.99
+    },
+    "5": {
+      "n": 60,
+      "mean": 228.9,
+      "std": 59.49,
+      "p50": 251.45,
+      "p95": 263.16,
+      "p99": 265.76,
+      "min": 18.22,
+      "max": 266.9
+    }
+  },
+  "attack_detail": {
+    "T1": {
+      "total": 30,
+      "blocked": 30,
+      "block_rate": 100.0
+    },
+    "T2": {
+      "total": 30,
+      "blocked": 30,
+      "block_rate": 100.0
+    },
+    "T3": {
+      "total": 30,
+      "blocked": 30,
+      "block_rate": 100.0
+    },
+    "T4": {
+      "total": 30,
+      "blocked": 30,
+      "block_rate": 100.0
+    }
+  },
+  "agents": [
+    {
+      "agent_id": "ar-c-http",
+      "agent_type": "http",
+      "username": "audit-reader",
+      "chain_name": "chain_C",
+      "chain_depth": 5,
+      "n_requests": 30,
+      "successful": 30,
+      "wall_time_s": 10.08
+    },
+    {
+      "agent_id": "ar-d-http",
+      "agent_type": "http",
+      "username": "audit-reader",
+      "chain_name": "chain_D",
+      "chain_depth": 5,
+      "n_requests": 30,
+      "successful": 30,
+      "wall_time_s": 9.54
+    },
+    {
+      "agent_id": "attack-t1",
+      "agent_type": "attack",
+      "username": "compliance-manager",
+      "chain_name": "attack",
+      "chain_depth": -1,
+      "n_requests": 30,
+      "successful": 0,
+      "wall_time_s": 9.495
+    },
+    {
+      "agent_id": "attack-t2",
+      "agent_type": "attack",
+      "username": "compliance-manager",
+      "chain_name": "attack",
+      "chain_depth": -1,
+      "n_requests": 30,
+      "successful": 0,
+      "wall_time_s": 9.308
+    },
+    {
+      "agent_id": "attack-t3",
+      "agent_type": "attack",
+      "username": "risk-analyst",
+      "chain_name": "attack",
+      "chain_depth": -1,
+      "n_requests": 30,
+      "successful": 0,
+      "wall_time_s": 9.136
+    },
+    {
+      "agent_id": "attack-t4",
+      "agent_type": "attack",
+      "username": "compliance-manager",
+      "chain_name": "attack",
+      "chain_depth": -1,
+      "n_requests": 30,
+      "successful": 0,
+      "wall_time_s": 8.934
+    },
+    {
+      "agent_id": "cm-a-llm",
+      "agent_type": "llm",
+      "username": "compliance-manager",
+      "chain_name": "chain_A",
+      "chain_depth": 1,
+      "n_requests": 1,
+      "successful": 1,
+      "wall_time_s": 139.462
+    },
+    {
+      "agent_id": "cm-b-llm",
+      "agent_type": "llm",
+      "username": "compliance-manager",
+      "chain_name": "chain_B",
+      "chain_depth": 1,
+      "n_requests": 1,
+      "successful": 1,
+      "wall_time_s": 208.646
+    },
+    {
+      "agent_id": "cm-c-http",
+      "agent_type": "http",
+      "username": "compliance-manager",
+      "chain_name": "chain_C",
+      "chain_depth": 1,
+      "n_requests": 30,
+      "successful": 30,
+      "wall_time_s": 11.13
+    },
+    {
+      "agent_id": "cm-d-http",
+      "agent_type": "http",
+      "username": "compliance-manager",
+      "chain_name": "chain_D",
+      "chain_depth": 1,
+      "n_requests": 30,
+      "successful": 30,
+      "wall_time_s": 10.353
+    },
+    {
+      "agent_id": "de-a-llm",
+      "agent_type": "llm",
+      "username": "data-extractor",
+      "chain_name": "chain_A",
+      "chain_depth": 3,
+      "n_requests": 1,
+      "successful": 1,
+      "wall_time_s": 194.549
+    },
+    {
+      "agent_id": "de-b-llm",
+      "agent_type": "llm",
+      "username": "data-extractor",
+      "chain_name": "chain_B",
+      "chain_depth": 3,
+      "n_requests": 1,
+      "successful": 1,
+      "wall_time_s": 178.427
+    },
+    {
+      "agent_id": "ra-a-llm",
+      "agent_type": "llm",
+      "username": "risk-analyst",
+      "chain_name": "chain_A",
+      "chain_depth": 2,
+      "n_requests": 1,
+      "successful": 1,
+      "wall_time_s": 153.707
+    },
+    {
+      "agent_id": "ra-b-llm",
+      "agent_type": "llm",
+      "username": "risk-analyst",
+      "chain_name": "chain_B",
+      "chain_depth": 2,
+      "n_requests": 1,
+      "successful": 1,
+      "wall_time_s": 122.641
+    },
+    {
+      "agent_id": "ra-c-http",
+      "agent_type": "http",
+      "username": "risk-analyst",
+      "chain_name": "chain_C",
+      "chain_depth": 2,
+      "n_requests": 30,
+      "successful": 30,
+      "wall_time_s": 11.194
+    },
+    {
+      "agent_id": "ra-d-http",
+      "agent_type": "http",
+      "username": "risk-analyst",
+      "chain_name": "chain_D",
+      "chain_depth": 2,
+      "n_requests": 30,
+      "successful": 30,
+      "wall_time_s": 10.312
+    },
+    {
+      "agent_id": "rv-a-llm",
+      "agent_type": "llm",
+      "username": "report-validator",
+      "chain_name": "chain_A",
+      "chain_depth": 4,
+      "n_requests": 1,
+      "successful": 1,
+      "wall_time_s": 224.205
+    },
+    {
+      "agent_id": "rv-b-llm",
+      "agent_type": "llm",
+      "username": "report-validator",
+      "chain_name": "chain_B",
+      "chain_depth": 4,
+      "n_requests": 1,
+      "successful": 1,
+      "wall_time_s": 164.178
+    },
+    {
+      "agent_id": "rv-c-http",
+      "agent_type": "http",
+      "username": "report-validator",
+      "chain_name": "chain_C",
+      "chain_depth": 4,
+      "n_requests": 30,
+      "successful": 30,
+      "wall_time_s": 11.136
+    },
+    {
+      "agent_id": "rv-d-http",
+      "agent_type": "http",
+      "username": "report-validator",
+      "chain_name": "chain_D",
+      "chain_depth": 4,
+      "n_requests": 30,
+      "successful": 30,
+      "wall_time_s": 9.375
+    }
+  ]
+}

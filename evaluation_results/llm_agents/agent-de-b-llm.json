@@ -1,0 +1,20 @@
+{
+  "agent_id": "de-b-llm",
+  "agent_type": "llm",
+  "username": "data-extractor",
+  "chain_name": "chain_B",
+  "chain_depth": 3,
+  "attack_class": "",
+  "n_requests": 1,
+  "requests": [
+    {
+      "latency_ms": 173623.5670180031,
+      "http_status": 200,
+      "blocked": false,
+      "error": ""
+    }
+  ],
+  "wall_time_s": 178.427,
+  "started_at": "2026-05-19T12:56:12.791726+00:00",
+  "completed_at": "2026-05-19T12:59:11.218732+00:00"
+}

@@ -1,0 +1,194 @@
+{
+  "agent_id": "attack-t3",
+  "agent_type": "attack",
+  "username": "risk-analyst",
+  "chain_name": "attack",
+  "chain_depth": -1,
+  "attack_class": "T3",
+  "n_requests": 30,
+  "requests": [
+    {
+      "latency_ms": 316.7491450003581,
+      "http_status": 403,
+      "blocked": true,
+      "error": ""
+    },
+    {
+      "latency_ms": 229.3458019994432,
+      "http_status": 403,
+      "blocked": true,
+      "error": ""
+    },
+    {
+      "latency_ms": 238.50034100178163,
+      "http_status": 403,
+      "blocked": true,
+      "error": ""
+    },
+    {
+      "latency_ms": 237.02734499966027,
+      "http_status": 403,
+      "blocked": true,
+      "error": ""
+    },
+    {
+      "latency_ms": 252.11472600130946,
+      "http_status": 403,
+      "blocked": true,
+      "error": ""
+    },
+    {
+      "latency_ms": 256.04403800025466,
+      "http_status": 403,
+      "blocked": true,
+      "error": ""
+    },
+    {
+      "latency_ms": 254.40009299927624,
+      "http_status": 403,
+      "blocked": true,
+      "error": ""
+    },
+    {
+      "latency_ms": 243.65742900045007,
+      "http_status": 403,
+      "blocked": true,
+      "error": ""
+    },
+    {
+      "latency_ms": 258.80556399715715,
+      "http_status": 403,
+      "blocked": true,
+      "error": ""
+    },
+    {
+      "latency_ms": 250.2643329971761,
+      "http_status": 403,
+      "blocked": true,
+      "error": ""
+    },
+    {
+      "latency_ms": 239.62010700051906,
+      "http_status": 403,
+      "blocked": true,
+      "error": ""
+    },
+    {
+      "latency_ms": 256.4041770019685,
+      "http_status": 403,
+      "blocked": true,
+      "error": ""
+    },
+    {
+      "latency_ms": 238.05679999713902,
+      "http_status": 403,
+      "blocked": true,
+      "error": ""
+    },
+    {
+      "latency_ms": 255.76606700269622,
+      "http_status": 403,
+      "blocked": true,
+      "error": ""
+    },
+    {
+      "latency_ms": 250.38197499816306,
+      "http_status": 403,
+      "blocked": true,
+      "error": ""
+    },
+    {
+      "latency_ms": 254.62688300103764,
+      "http_status": 403,
+      "blocked": true,
+      "error": ""
+    },
+    {
+      "latency_ms": 261.1572080022597,
+      "http_status": 403,
+      "blocked": true,
+      "error": ""
+    },
+    {
+      "latency_ms": 257.2185030003311,
+      "http_status": 403,
+      "blocked": true,
+      "error": ""
+    },
+    {
+      "latency_ms": 250.065154999902,
+      "http_status": 403,
+      "blocked": true,
+      "error": ""
+    },
+    {
+      "latency_ms": 261.44648600165965,
+      "http_status": 403,
+      "blocked": true,
+      "error": ""
+    },
+    {
+      "latency_ms": 258.6906500000623,
+      "http_status": 403,
+      "blocked": true,
+      "error": ""
+    },
+    {
+      "latency_ms": 247.67936900025234,
+      "http_status": 403,
+      "blocked": true,
+      "error": ""
+    },
+    {
+      "latency_ms": 249.44826099817874,
+      "http_status": 403,
+      "blocked": true,
+      "error": ""
+    },
+    {
+      "latency_ms": 260.5652050006029,
+      "http_status": 403,
+      "blocked": true,
+      "error": ""
+    },
+    {
+      "latency_ms": 258.92139799907454,
+      "http_status": 403,
+      "blocked": true,
+      "error": ""
+    },
+    {
+      "latency_ms": 270.4918270028429,
+      "http_status": 403,
+      "blocked": true,
+      "error": ""
+    },
+    {
+      "latency_ms": 225.9966550009267,
+      "http_status": 403,
+      "blocked": true,
+      "error": ""
+    },
+    {
+      "latency_ms": 221.149040000455,
+      "http_status": 403,
+      "blocked": true,
+      "error": ""
+    },
+    {
+      "latency_ms": 125.21886299873586,
+      "http_status": 403,
+      "blocked": true,
+      "error": ""
+    },
+    {
+      "latency_ms": 133.42833400020027,
+      "http_status": 403,
+      "blocked": true,
+      "error": ""
+    }
+  ],
+  "wall_time_s": 9.136,
+  "started_at": "2026-05-19T12:56:15.833971+00:00",
+  "completed_at": "2026-05-19T12:56:24.970411+00:00"
+}

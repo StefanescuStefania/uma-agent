@@ -1,0 +1,20 @@
+{
+  "agent_id": "cm-b-llm",
+  "agent_type": "llm",
+  "username": "compliance-manager",
+  "chain_name": "chain_B",
+  "chain_depth": 1,
+  "attack_class": "",
+  "n_requests": 1,
+  "requests": [
+    {
+      "latency_ms": 203242.21820499952,
+      "http_status": 200,
+      "blocked": false,
+      "error": ""
+    }
+  ],
+  "wall_time_s": 208.646,
+  "started_at": "2026-05-19T12:56:12.261798+00:00",
+  "completed_at": "2026-05-19T12:59:40.908226+00:00"
+}

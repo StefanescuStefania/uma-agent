@@ -1,0 +1,226 @@
+# Distributed UMA-Agent stack: Keycloak, Resource Server, and agents run on
+# separate containers.  Toxiproxy sits between the benchmark/LLM-agent
+# containers and the backend services, injecting configurable network latency
+# (default 10 ms ± 2 ms) to replicate inter-container/inter-VM delay.
+#
+# Quick start (benchmark only):
+#   docker compose -f docker-compose.distributed.yml up --build --abort-on-container-exit benchmark-agent
+#   # or use the helper script:
+#   ./scripts/run_distributed_benchmark.sh
+#
+# Ollama LLM-agent demo (Ollama must be running on the host):
+#   docker compose -f docker-compose.distributed.yml --profile ollama up --build ollama-agent
+#
+# Groq LLM-agent demo:
+#   GROQ_API_KEY=gsk_... docker compose -f docker-compose.distributed.yml --profile groq up --build groq-agent
+#
+# Tune latency:
+#   NETWORK_LATENCY_MS=20 NETWORK_JITTER_MS=3 docker compose -f docker-compose.distributed.yml up --build --abort-on-container-exit benchmark-agent
+
+services:
+
+  # ── Backend tier ────────────────────────────────────────────────────────────
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: dist-uma-postgres
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak_password
+    volumes:
+      - dist_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - uma-distributed
+    restart: unless-stopped
+
+  keycloak:
+    image: keycloak/keycloak:24.0.0
+    container_name: dist-uma-keycloak
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak_password
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_PORT: 8080
+      KC_HOSTNAME_ADMIN: localhost
+      KC_HOSTNAME_ADMIN_PORT: 8080
+      KC_HTTP_ENABLED: "true"
+      KC_HTTP_PORT: 8080
+      KC_PROXY: edge
+      KC_LOG_LEVEL: INFO
+      JAVA_OPTS: "-Xms512m -Xmx1024m"
+    command:
+      - "start-dev"
+      - "--import-realm"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./keycloak:/opt/keycloak/data/import:ro
+    networks:
+      - uma-distributed
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/8080' 2>/dev/null && echo ok || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  resource-server:
+    build: .
+    container_name: dist-uma-resource-server
+    environment:
+      # Resource server talks directly to Keycloak (no proxy hop) so its own
+      # token-introspection latency is not double-counted in the benchmark.
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: test-realm
+      CLIENT_ID: resource-server
+      CLIENT_SECRET: uma-resource-server-secret
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak_password
+      CHAIN_HMAC_SECRET: "uma-agent-chain-hmac-secret-2024"
+      MAX_DELEGATION_DEPTH: "6"
+      LOG_LEVEL: INFO
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    networks:
+      - uma-distributed
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:5000/ > /dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  # ── Toxiproxy — network latency injection ────────────────────────────────────
+  # Sits between the agent tier and the backend tier.
+  # Proxies:
+  #   :18080  →  keycloak:8080
+  #   :15000  →  resource-server:5000
+  # Latency toxics are added programmatically by benchmark_distributed.py on
+  # startup (TOXIPROXY_API + NETWORK_LATENCY_MS + NETWORK_JITTER_MS env vars).
+
+  toxiproxy:
+    image: ghcr.io/shopify/toxiproxy:2.9.0
+    container_name: dist-uma-toxiproxy
+    command: ["-host", "0.0.0.0", "-config", "/etc/toxiproxy.json"]
+    volumes:
+      - ./docker/toxiproxy.json:/etc/toxiproxy.json:ro
+    ports:
+      - "8474:8474"    # Toxiproxy REST API (inspect/modify from host)
+      - "18080:18080"  # Keycloak via proxy (host debugging)
+      - "15000:15000"  # Resource server via proxy (host debugging)
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      resource-server:
+        condition: service_healthy
+    networks:
+      - uma-distributed
+    restart: unless-stopped
+
+  # ── Agent tier ───────────────────────────────────────────────────────────────
+
+  # Benchmark agent: measures HTTP latency of each UMA operation from inside
+  # the Docker network (container-to-container) with Toxiproxy-injected delay.
+  benchmark-agent:
+    image: uma-agent-benchmark:latest
+    container_name: dist-uma-benchmark-agent
+    environment:
+      KEYCLOAK_URL: http://toxiproxy:18080
+      RESOURCE_SERVER_URL: http://toxiproxy:15000
+      KEYCLOAK_REALM: test-realm
+      CLIENT_ID: test-app
+      CHAIN_HMAC_SECRET: "uma-agent-chain-hmac-secret-2024"
+      TOXIPROXY_API: http://toxiproxy:8474
+      NETWORK_LATENCY_MS: "${NETWORK_LATENCY_MS:-10}"
+      NETWORK_JITTER_MS: "${NETWORK_JITTER_MS:-2}"
+      N_HTTP: "${N_HTTP:-30}"
+      N_PYTHON: "${N_PYTHON:-1000}"
+    volumes:
+      - ./paper_evidence:/results
+    depends_on:
+      - toxiproxy
+    networks:
+      - uma-distributed
+    command: >
+      python scenarios/benchmark_distributed.py
+        --n-http ${N_HTTP:-30}
+        --n-python ${N_PYTHON:-1000}
+        --json-out /results/benchmark_distributed.json
+
+  # Optional: Ollama-backed LLM agent demo
+  # Requires Ollama running on the host (ollama serve + ollama pull llama3.2).
+  # The OLLAMA_BASE_URL env var uses host.docker.internal to reach the host.
+  ollama-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+    container_name: dist-uma-ollama-agent
+    profiles: ["ollama"]
+    environment:
+      KEYCLOAK_URL: http://toxiproxy:18080
+      RESOURCE_SERVER_URL: http://toxiproxy:15000
+      KEYCLOAK_REALM: test-realm
+      CLIENT_ID: test-app
+      CHAIN_HMAC_SECRET: "uma-agent-chain-hmac-secret-2024"
+      TOXIPROXY_API: http://toxiproxy:8474
+      NETWORK_LATENCY_MS: "${NETWORK_LATENCY_MS:-10}"
+      NETWORK_JITTER_MS: "${NETWORK_JITTER_MS:-2}"
+      OLLAMA_BASE_URL: "${OLLAMA_BASE_URL:-http://host.docker.internal:11434/v1}"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - toxiproxy
+    networks:
+      - uma-distributed
+    command: python demos/dora_llm_demo.py --backend ollama
+
+  # Optional: Groq-backed LLM agent demo
+  # Requires GROQ_API_KEY environment variable.
+  groq-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+    container_name: dist-uma-groq-agent
+    profiles: ["groq"]
+    environment:
+      KEYCLOAK_URL: http://toxiproxy:18080
+      RESOURCE_SERVER_URL: http://toxiproxy:15000
+      KEYCLOAK_REALM: test-realm
+      CLIENT_ID: test-app
+      CHAIN_HMAC_SECRET: "uma-agent-chain-hmac-secret-2024"
+      TOXIPROXY_API: http://toxiproxy:8474
+      NETWORK_LATENCY_MS: "${NETWORK_LATENCY_MS:-10}"
+      NETWORK_JITTER_MS: "${NETWORK_JITTER_MS:-2}"
+      GROQ_API_KEY: "${GROQ_API_KEY:-}"
+    depends_on:
+      - toxiproxy
+    networks:
+      - uma-distributed
+    command: python demos/dora_llm_demo.py --backend groq
+
+networks:
+  uma-distributed:
+    driver: bridge
+
+volumes:
+  dist_postgres_data:
+    driver: local

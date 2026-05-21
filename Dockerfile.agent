@@ -1,0 +1,14 @@
+# Build FROM the existing resource-server image to skip slow apt-get/pip steps.
+# Only re-copies the source files (picks up env-var fixes in llm_agent.py, etc.)
+FROM uma-agent-resource-server:latest
+
+WORKDIR /app
+
+# Re-copy source so the agent image reflects the latest changes
+# (llm_agent.py env var support, benchmark_distributed.py, etc.)
+COPY agents/     ./agents/
+COPY scenarios/  ./scenarios/
+COPY demos/      ./demos/
+
+# Default: run the distributed benchmark
+CMD ["python", "scenarios/benchmark_distributed.py"]
